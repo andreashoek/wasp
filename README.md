@@ -11,11 +11,11 @@ Web-Accessible Single Cell RNA-Seq Processing Platform
     - [Conda](#conda)
     - [Docker](#docker)
   - [Pre-Processing Visualization](#pre-processing-visualization)
-    - [Docker](#docker)
+    - [Docker](#docker-1)
     - [Windows](#windows)
   - [Post-Processing](#post-processing)
-    - [Docker](#docker)
-    - [Windows](#windows)
+    - [Docker](#docker-2)
+    - [Windows](#windows-1)
 - [Example Data Sets](#example-data-sets)
 
 
