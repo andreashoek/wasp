@@ -1,0 +1,49 @@
+body{
+    color:black;
+}
+
+.navbar-default .navbar-brand{
+    color: navy;
+}
+
+.navbar-default .navbar-nav > .active > a, .navbar-default .navbar-nav > .active > a:focus{
+    background-color:navy;
+    color:white;
+}
+
+.nav-tabs > li.active > a, .nav-tabs > li.active > a:focus{
+    color:navy;
+}
+
+.nav-tabs > li > a{
+    color:#777;
+}
+
+.shiny-input-container:not(.shiny-input-container-inline){    
+width:410px;
+}
+
+.fa.fa-fas.fa-check-circle{
+    color:green;
+}
+
+.fa.fa-fas.fa-exclamation-circle{
+    color:orange;
+}
+
+.fa.fa-fas.fa-times-circle{
+    color:red;
+}
+
+#valid.btn-default{
+    border-color:red;
+}
+
+.icon{
+    position: relative;
+}
+
+li.dropdown{
+    padding-right: 10px;
+    padding-top: 5px;
+}

@@ -1,0 +1,301 @@
+#!/usr/bin/env python3
+
+# Lists for samples and reference files
+SAMPLES = []
+REFGTF = []
+REFFA = []
+
+# Reading-in sample files from Samples directory
+for f in os.listdir('Samples/'):
+	if f.endswith(".fastq"):
+		file = os.path.splitext(f)
+		SAMPLES.append(file[0])
+
+
+# Reading-in reference files from Reference directory
+for ref in os.listdir('Reference/'):
+	if ref.endswith(".gtf"):
+		r = os.path.splitext(ref)
+		REFGTF.append(r[0])
+	elif ref.endswith(".fa"):
+		r = os.path.splitext(ref)
+		REFFA.append(r[0])
+
+
+# If needed reference files are not present, pre-processing will terminate and error messages will be printed
+if not REFGTF:
+	print("ERROR: Reference file is missing (.gtf)!")
+	exit(1)
+
+if not REFFA:
+	print("ERROR: Reference file is missing (.fa)!")
+	exit(1)
+
+
+# Names of samples and reference files will be printed
+print(SAMPLES)
+print(REFFA)
+print(REFGTF)
+
+
+# Target rule with names that have to be present after sucessful pre-processing
+
+rule all:
+	input:
+		expand("Results/{sample}/FastQC_Files/", sample=SAMPLES),
+		expand("Results/{sample}/JSON_Files/{sample}_Mapping_Rates.json", sample=SAMPLES),
+		expand("Results/{sample}/JSON_Files/{sample}_Gene_Counts.json", sample=SAMPLES),
+		expand("Results/{sample}/JSON_Files/{sample}_Cell_Numbers.json", sample=SAMPLES),
+		expand("Results/{sample}/JSON_Files/{sample}_UMI_Counts.json", sample=SAMPLES),
+		expand("Results/{sample}/JSON_Files/{sample}_Mapping_Rates_Sample.json", sample=SAMPLES),
+		expand("Results/{sample}/JSON_Files/{sample}_Gene_Counts_Sample.json", sample=SAMPLES),
+		expand("Results/{sample}/{sample}_Demultiplexed.zip", sample=SAMPLES),
+
+
+# Quality control with fastQC
+rule fastqc:
+	input:
+		"Samples/{sample}.fastq"
+	output:
+		directory("Results/{sample}/FastQC_Files/")
+	benchmark:
+		"Benchmarks/{sample}/{sample}_fastqc.txt"
+	shell:
+		"fastqc -o {output} {input}"
+
+
+# Generating genome indexes for mapping with STAR
+rule indexingMapping:
+	input:
+		fna=expand("Reference/{ref}.fa", ref=REFFA)
+	output:
+		directory("Temporary/STAR_Indices/")
+	benchmark:
+		"Benchmarks/indexingGenome.txt"
+	threads: 8
+	shell:
+		"STAR --runThreadN {threads} --runMode genomeGenerate --genomeDir {output} --genomeFastaFiles {input}"
+
+
+# Running mapping job with STAR
+rule mapping:
+	input:
+		file="Samples/{mapping}.fastq",
+		dir="Temporary/STAR_Indices/"
+	output:
+		"Temporary/{mapping}/STAR_Mapping/{mapping}_Aligned.sortedByCoord.out.bam",
+		"Temporary/{mapping}/STAR_Mapping/{mapping}_Log.final.out"
+	benchmark:
+		"Benchmarks/{mapping}/{mapping}_mapping.txt"
+	threads: 16
+	shell:
+		"STAR --runThreadN {threads} --genomeDir {input.dir} --readFilesIn {input.file} --outSAMtype BAM SortedByCoordinate --outSAMunmapped Within --outFileNamePrefix Temporary/{wildcards.mapping}/STAR_Mapping/{wildcards.mapping}_"
+
+
+# Counting reads to genomic features with featureCounts
+rule featureCounts:
+	input:
+		gtf=expand("Reference/{ref}.gtf", ref=REFGTF),
+		bam="Temporary/{genes}/STAR_Mapping/{genes}_Aligned.sortedByCoord.out.bam"
+	output:
+		"Temporary/{genes}/featureCounts/{genes}_Aligned.sortedByCoord.out.bam.featureCounts.bam",
+		"Temporary/{genes}/featureCounts/{genes}.summary"
+	threads: 8
+	params:
+		"Temporary/{genes}/featureCounts/{genes}"
+	benchmark:
+		"Benchmarks/{genes}/{genes}_geneCounting.txt"
+	shell:
+		"featureCounts -T {threads} -a {input.gtf} -o {params} -R BAM {input.bam}"
+
+
+# Extracting the header of BAM file of STAR mapping result
+rule header:
+	input:
+		"Temporary/{sample}/featureCounts/{sample}_Aligned.sortedByCoord.out.bam.featureCounts.bam"
+	output:
+		header=temp("Temporary/{sample}/tmp/header.tmp.txt")
+	shell:
+		"""
+		samtools view -H {input} > {output.header}
+		"""
+
+
+# Splitting STAR BAM file in smaller BAM files for parallel processing
+checkpoint splitBams:
+	input:
+		bam="Temporary/{sample}/featureCounts/{sample}_Aligned.sortedByCoord.out.bam.featureCounts.bam",
+		header="Temporary/{sample}/tmp/header.tmp.txt"
+	output:
+		bams=temp(directory("Temporary/{sample}/tmp/split/"))
+	params:
+		lines=1000000
+	benchmark:
+		"Benchmarks/{sample}/{sample}_splittingBams.txt"
+	shell:
+		"""
+		samtools view {input.bam} | split -d - {output.bams}pre. -l {params.lines} --filter="cat {input.header} - | samtools view -b - > \$FILE.bam"
+		"""
+
+
+# Sorting and indexing STAR BAM files
+rule indexSortBam:
+	input:
+		bam="Temporary/{bam}/tmp/split/pre.{id}.bam"
+	output:
+		sort=temp("Temporary/{bam}/tmp/post.{id}.bam"),
+		bai=temp("Temporary/{bam}/tmp/post.{id}.bam.bai")
+	benchmark:
+		"Benchmarks/{bam}/{bam}_sortIndex_{id}.txt"
+	shell:
+		"""
+		samtools sort {input} > {output.sort}
+		samtools index {output.sort} > {output.bai}
+		"""
+
+
+# Processing reads in STAR BAM files with Illumina algorithm
+rule operate:
+	input:
+		bam="Temporary/{bam}/tmp/post.{id}.bam",
+		bai="Temporary/{bam}/tmp/post.{id}.bam.bai"
+	output:
+		temp("Temporary/{bam}/tmp/op.{id}.bam")
+	benchmark:
+		"Benchmarks/{bam}/{bam}_operate_{id}.txt"
+	shell:
+		"""
+		Scripts/demulti_umi.py {input.bam} {output}
+		"""
+
+
+# Checking splitting of BAM files and returning them to next rule
+def aggregateBams(wildcards):
+	checkpoint_output=checkpoints.splitBams.get(**wildcards).output.bams
+	return expand("Temporary/{sample}/tmp/op.{id}.bam", sample=wildcards.sample, id=glob_wildcards(os.path.join(checkpoint_output, "pre.{id}.bam")).id)
+
+
+# Merging all cellbarcodes in one BAM file and indexing BAM file
+rule mergeBams:
+	input:
+		aggregateBams
+	output:
+		umi="Temporary/{sample}/tmp/all_with_umi.bam"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_mergingBams.txt"
+	shell:
+		"""
+		samtools merge {output} {input}
+		samtools index {output}
+		"""
+
+
+# Counting UMIs and genes for each cellbarcode
+rule umi_tools:
+	input:
+		"Temporary/{sample}/tmp/all_with_umi.bam"
+	output:
+		"Temporary/{sample}/UMI_tools/{sample}_umi_per_cell.tsv"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_UMI-tools.txt"
+	shell:
+		"""
+		umi_tools count --per-gene --assigned-status-tag="XS" --gene-tag="XT" --umi-separator="_" --per-cell -I {input} -S {output}
+		"""
+
+
+# Demultiplexing UMI file into individual cellbarcodes
+rule demultiplexing:
+	input:
+		"Temporary/{sample}/UMI_tools/{sample}_umi_per_cell.tsv"
+	output:
+		demultiDir=directory("Temporary/{sample}/Demultiplexed_{sample}"),
+		cellFile="Temporary/{sample}/Demultiplexed_{sample}/CellCounter.txt"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_demultiplexingCellbarcodes.txt"
+	shell:
+		"Scripts/splitBarcodes.py {input} {wildcards.sample}"
+
+# Zip demultiplexed files
+rule zip:
+	input:
+		rules.demultiplexing.output.demultiDir
+	output:
+		"Results/{sample}/{sample}_Demultiplexed.zip"
+	shell:
+		"zip -r {output} {input}"
+
+
+# Writing counted UMIs of cellbarcodes in a JSON file
+rule umiJson:
+	input:
+		rules.demultiplexing.output.cellFile
+	output:
+		"Results/{sample}/JSON_Files/{sample}_UMI_Counts.json"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_umiCountsJson.txt"
+	shell:
+		"Scripts/umiMetrics.py {input} {wildcards.sample}"
+
+
+
+# Writing mapping results of each cellbarcode in JSON file
+rule mappingJson:
+	input:
+		"Temporary/{sample}/tmp/all_with_umi.bam"
+	output:
+		"Results/{sample}/JSON_Files/{sample}_Mapping_Rates.json"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_mappingJson.txt"
+	shell:
+		"Scripts/mappingMetrics.py {input} {wildcards.sample}"
+
+
+# Writing counted gene results of each cellbarcode in JSON file
+rule geneCountJson:
+	input:
+		"Temporary/{sample}/tmp/all_with_umi.bam"
+	output:
+		"Results/{sample}/JSON_Files/{sample}_Gene_Counts.json"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_geneCountsJson.txt"
+	shell:
+		"Scripts/fcMetrics.py {input} {wildcards.sample}"
+
+
+# Generating JSON file with metrics from demultiplexing
+rule demulti_json:
+	input:
+		rules.demultiplexing.output.cellFile,
+		"Temporary/{sample}/STAR_Mapping/{sample}_Log.final.out",
+		"Temporary/{sample}/tmp/all_with_umi.bam"
+	output:
+		"Results/{sample}/JSON_Files/{sample}_Cell_Numbers.json"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_CellNumbers.txt"
+	shell:
+		"Scripts/demultiMetrics.py {input} {wildcards.sample}"
+
+
+# Generating JSON file with mapping results from sample
+rule mappingSample:
+	input:
+		"Temporary/{sample}/STAR_Mapping/{sample}_Log.final.out"
+	output:
+		"Results/{sample}/JSON_Files/{sample}_Mapping_Rates_Sample.json"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_mappingRatesSample.txt"
+	shell:
+		"Scripts/mapping_json.py {input} {wildcards.sample}"
+
+
+# Generating JSON file with counted gene results from sample
+rule geneCountSample:
+	input:
+		"Temporary/{sample}/featureCounts/{sample}.summary"
+	output:
+		"Results/{sample}/JSON_Files/{sample}_Gene_Counts_Sample.json"
+	benchmark:
+		"Benchmarks/{sample}/{sample}_geneCountsSample.txt"
+	shell:
+		"Scripts/gene_counting_json.py {input} {wildcards.sample}"

@@ -1,0 +1,20 @@
+name: sc_pipeline
+channels:
+- anaconda
+- conda-forge
+- bioconda
+- defaults
+dependencies:
+- simplejson
+- more-itertools
+- py
+- pysam
+- python-levenshtein
+- python
+- fastqc
+- star
+- subread
+- samtools
+- snakemake
+- umi_tools
+- zip
