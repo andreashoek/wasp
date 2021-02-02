@@ -226,7 +226,9 @@ ui <-
                             plotOutput("umiKnee", dblclick = "kneePlot_dbl", brush = brushOpts(id = "umiKnee_brush", resetOnNew = TRUE), click = "umiKnee_click"),
                             br(),
                             fluidRow(align="center",
-                                     column(4, uiOutput("kneeSlider")),
+                                     column(4, uiOutput("expCellSlider"))),
+						    fluidRow(align="center",
+									 column(4, uiOutput("kneeSlider")),
                                      column(2, br(), br(), br(), actionButton("calcCut", "Recommended Cutoff")),
                                      column(6, p("After checking the different metrics of the samples and determining  cells, you can download the expression matrix of the valid cells, for further downstream analysis."),
                                             splitLayout(cellWidths = c("30%", "30%"),
@@ -1296,7 +1298,12 @@ server <- function(input, output, session) {
       umiTab <- kneePlot(input$map)
       
       rawdiff <- diff(umiTab$log_lib_size)/diff(umiTab$barcode_rank)
-      inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+	  # If user has not selected a minimum number of cells yet on the "valid cells" page, a default of a minimum of 100 cells is used for inflection calculation
+      if(!is.null(input$expCellSlider)) {
+		inflection <- which(rawdiff == min(rawdiff[input$expCellSlider:length(rawdiff)], na.rm = TRUE))
+	  } else {
+	    inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+	  }
       valid <- round(inflection + (inflection*0.5), digits = 0)
       
       sliderInput("mapSlider", h3("Number of barcodes", br(), h5("Warning: Selecting a high value might lead to an increased calculation time.")), min=1, max = nrow(sortedMap()), value = valid, step = 1, width = "700px")
@@ -1315,7 +1322,12 @@ server <- function(input, output, session) {
       
       for (j in 1/n){
         rawdiff <- diff(umiTab$log_lib_size)/diff(umiTab$barcode_rank)
-        inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+	  # If user has not selected a minimum number of cells yet on the "valid cells" page, a default of a minimum of 100 cells is used for inflection calculation
+      if(!is.null(input$expCellSlider)) {
+		inflection <- which(rawdiff == min(rawdiff[input$expCellSlider:length(rawdiff)], na.rm = TRUE))
+	  } else {
+	    inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+	  }
         incProgress(1/n)
       }
     })
@@ -1578,7 +1590,12 @@ server <- function(input, output, session) {
       umiTab <- kneePlot(input$gene)
       
       rawdiff <- diff(umiTab$log_lib_size)/diff(umiTab$barcode_rank)
-      inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+      # If user has not selected a minimum number of cells yet on the "valid cells" page, a default of a minimum of 100 cells is used for inflection calculation
+      if(!is.null(input$expCellSlider)) {
+		inflection <- which(rawdiff == min(rawdiff[input$expCellSlider:length(rawdiff)], na.rm = TRUE))
+	  } else {
+	    inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+	  }
       valid <- round(inflection + (inflection*0.5), digits = 0)
       
       sliderInput("geneSlider", h3("Number of barcodes", br(), h5("Warning: Selecting a high value might lead to an increased calculation time.")), min=1, max = nrow(sortedGene()), value = valid, step = 1, width = "700px")
@@ -1596,7 +1613,12 @@ server <- function(input, output, session) {
       
       for (j in 1/n){
         rawdiff <- diff(umiTab$log_lib_size)/diff(umiTab$barcode_rank)
-        inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+      # If user has not selected a minimum number of cells yet on the "valid cells" page, a default of a minimum of 100 cells is used for inflection calculation
+      if(!is.null(input$expCellSlider)) {
+		inflection <- which(rawdiff == min(rawdiff[input$expCellSlider:length(rawdiff)], na.rm = TRUE))
+	  } else {
+	    inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+	  }
         incProgress(1/n)
       }
     })
@@ -1745,6 +1767,13 @@ server <- function(input, output, session) {
     sliderInput("umiKneeSlider", h3("Valid cells cutoff", br(), h5("Warning: Selecting a high value might lead to an increased calculation time.")), min=1, max = nrow(kneePlot(input$umi)), value = 400, step = 1)
   })
   
+  output$expCellSlider <- renderUI({
+    
+    sliderInput("expCellSlider", h3("Minimum expected cells", br(), h5("Note: In some datasets, especially with 10x-based data, the detected valid cells cutoff might be very low. By increasing the minimum number of expected cells from the default of 100 cells to e.g. 1,000 cells, the cutoff is re-calculated to a possibly better fitting value. However, you can always select a custom number of cells for the post-processing.")), min=1, max = nrow(kneePlot(input$umi)), value = 100, step = 1)
+  })
+  
+  
+  
   
   # Updating slider in UMI knee plot, if button for recommended cut off is used
   observeEvent(input$calcCut, {
@@ -1756,7 +1785,7 @@ server <- function(input, output, session) {
       
       for (j in 1/n){
         rawdiff <- diff(umiTab$log_lib_size)/diff(umiTab$barcode_rank)
-        inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+        inflection <- which(rawdiff == min(rawdiff[input$expCellSlider:length(rawdiff)], na.rm = TRUE))
         incProgress(1/n)
       }
     })
@@ -2129,7 +2158,7 @@ server <- function(input, output, session) {
       
       for (j in 1/n){
         rawdiff <- diff(umiTab$log_lib_size)/diff(umiTab$barcode_rank)
-        inflection <- which(rawdiff == min(rawdiff[100:length(rawdiff)], na.rm = TRUE))
+        inflection <- which(rawdiff == min(rawdiff[input$expCellSlider:length(rawdiff)], na.rm = TRUE))
         incProgress(1/n)
       }
     })
