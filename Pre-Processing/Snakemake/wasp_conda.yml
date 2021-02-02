@@ -15,6 +15,6 @@ dependencies:
 - star
 - subread
 - samtools
-- snakemake
+- snakemake=5.20.1
 - umi_tools
 - zip

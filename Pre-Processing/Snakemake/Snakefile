@@ -6,7 +6,7 @@ REFGTF = []
 REFFA = []
 
 # Reading-in sample files from Samples directory
-for f in os.listdir('Samples/'):
+for f in os.listdir('Samples/transformed/'):
 	if f.endswith(".fastq"):
 		file = os.path.splitext(f)
 		SAMPLES.append(file[0])
@@ -55,7 +55,7 @@ rule all:
 # Quality control with fastQC
 rule fastqc:
 	input:
-		"Samples/{sample}.fastq"
+		"Samples/transformed/{sample}.fastq"
 	output:
 		directory("Results/{sample}/FastQC_Files/")
 	benchmark:
@@ -80,7 +80,7 @@ rule indexingMapping:
 # Running mapping job with STAR
 rule mapping:
 	input:
-		file="Samples/{mapping}.fastq",
+		file="Samples/transformed/{mapping}.fastq",
 		dir="Temporary/STAR_Indices/"
 	output:
 		"Temporary/{mapping}/STAR_Mapping/{mapping}_Aligned.sortedByCoord.out.bam",
@@ -299,3 +299,4 @@ rule geneCountSample:
 		"Benchmarks/{sample}/{sample}_geneCountsSample.txt"
 	shell:
 		"Scripts/gene_counting_json.py {input} {wildcards.sample}"
+
