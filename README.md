@@ -194,7 +194,7 @@ The Windows standalone version of WASP’s Pre-Processing runs without any insta
 
 Simply download & extract the ZIP archive from:
 
-[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Windows/WASP_PreProcessing_Shiny.zip](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Windows/WASP_PreProcessing_Shiny.zip)
+[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Windows/WASP_PreProcessing_Shiny.zip](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Windows/WASP_PreProcessing_Shiny.zip)
 
 Next you can start the application by executing the WASP_Pre.bat script in the extracted folder. This will start a command line window and open a new tab in your system’s default web browser showing the start page of the Shiny application where you can upload the Result folder from the WASP pipeline.
 
@@ -255,7 +255,7 @@ The Windows standalone version of WASP’s Post-Processing runs without any inst
 
 Simply download & extract the ZIP archive from:
 
-[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Windows/WASP_PostProcessing_Shiny.zip](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Windows/WASP_PostProcessing_Shiny.zip)
+[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Windows/WASP_PostProcessing_Shiny.zip](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Windows/WASP_PostProcessing_Shiny.zip)
 
 Next you can start the application by executing the WASP_Post.bat script in the extracted folder. This will start a command line window and open a new tab in your system’s default web browser showing the start page of the Shiny application where you can upload the Result folder from the WASP pipeline.
 
@@ -265,13 +265,13 @@ For each of WASP's three modules, you can download example data sets to test the
 **Pre-Processing Pipeline**
 
 ddSeq:
-[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Example_Data/WASP_PreProcessing_Snakemake_ddSeq_Example.tar.gz](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Example_Data/WASP_PreProcessing_Snakemake_ddSeq_Example.tar.gz)
+[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Example_Data/WASP_PreProcessing_Snakemake_ddSeq_Example.tar.gz](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Example_Data/WASP_PreProcessing_Snakemake_ddSeq_Example.tar.gz)
 
 10x:
-[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Example_Data/WASP_PreProcessing_Snakemake_10x_Example.tar.gz](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Example_Data/WASP_PreProcessing_Snakemake_10x_Example.tar.gz)
+[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Example_Data/WASP_PreProcessing_Snakemake_10x_Example.tar.gz](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Example_Data/WASP_PreProcessing_Snakemake_10x_Example.tar.gz)
 
 **Pre-Processing Visualization**
-[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Example_Data/WASP_PreProcessing_Shiny_Example.zip](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Example_Data/WASP_PreProcessing_Shiny_Example.zip)
+[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Example_Data/WASP_PreProcessing_Shiny_Example.zip](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Example_Data/WASP_PreProcessing_Shiny_Example.zip)
 
 **Post-Processing**
-[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Example_Data/WASP_PostProcessing_Shiny_Example.zip](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP/Example_Data/WASP_PostProcessing_Shiny_Example.zip)
+[https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Example_Data/WASP_PostProcessing_Shiny_Example.zip](https://s3.computational.bio.uni-giessen.de/swift/v1/WASP_deNBI/Example_Data/WASP_PostProcessing_Shiny_Example.zip)
